@@ -1,2 +1,1 @@
-cd ./
 python main.py

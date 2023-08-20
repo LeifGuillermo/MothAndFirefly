@@ -4,23 +4,37 @@ import pygame
 
 # ======== UTILITIES AND GENERAL FUNCTIONS ========
 
-
+_ = (0, 0, 0, 0)  # Transparent
 def create_pixel_art_image(pixel_data, pixel_size=10):
-    width = len(pixel_data[0])
-    height = len(pixel_data)
-    image = pygame.Surface((width * pixel_size, height * pixel_size))
+    # Get natural size
+    natural_width = len(pixel_data[0])
+    natural_height = len(pixel_data)
+
+    # Calculate scaled size
+    scaled_width = natural_width * pixel_size
+    scaled_height = natural_height * pixel_size
+
+    # Set minimum size constraints
+    min_width = natural_width  # or another value if you want a higher minimum
+    min_height = natural_height  # or another value if you want a higher minimum
+
+    # Override pixel_size if necessary to ensure minimum size
+    if scaled_width < min_width:
+        pixel_size = min_width // natural_width
+    if scaled_height < min_height:
+        pixel_size = max(pixel_size, min_height // natural_height)  # Take the larger pixel_size to satisfy both constraints
+
+    # Create pixel art image with possibly updated pixel_size
+    image = pygame.Surface((natural_width * pixel_size, natural_height * pixel_size))
 
     for y, row in enumerate(pixel_data):
         for x, color in enumerate(row):
-            if (
-                color
-            ):  # Only fill in the rectangle if there's a color (allows for transparent pixels)
-                rect = pygame.Rect(
-                    x * pixel_size, y * pixel_size, pixel_size, pixel_size
-                )
+            if color:  # Only fill in the rectangle if there's a color (allows for transparent pixels)
+                rect = pygame.Rect(x * pixel_size, y * pixel_size, pixel_size, pixel_size)
                 image.fill(color, rect)
 
     return image
+
 
 
 # ======== OBSTACLE BASE CLASSES ========
@@ -149,27 +163,33 @@ class Obstacle(pygame.sprite.Sprite):
 
 
 class Tree(Obstacle):
-    TREE_PIXELS = [
-        [None, None, None, (0, 128, 0), None, None, None],
-        [None, None, (0, 128, 0), (0, 128, 0), (0, 128, 0), None, None],
-        [None, (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), None],
-        [None, (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), None],
-        [None, (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), None],
-        [None, None, (139, 69, 19), (139, 69, 19), (139, 69, 19), None, None],
-        [None, None, (139, 69, 19), (139, 69, 19), (139, 69, 19), None, None],
+    BASE_TREE_PIXELS = [
+        [_, _, (0, 128, 0), _, _,],
+        [_, (0, 128, 0), (0, 128, 0), (0, 128, 0), _],
+        [(0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0)],
+        [(0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0), (0, 128, 0)],
+        [_, (139, 69, 19), (139, 69, 19), (139, 69, 19), _],
+        [_, (139, 69, 19), (139, 69, 19), (139, 69, 19), _],
     ]
 
     def __init__(self, x, y):
+        random_height = random.randint(0, 2)
+        self.TREE_PIXELS = self.BASE_TREE_PIXELS[:-2] * random_height + self.BASE_TREE_PIXELS[-2:]
         super().__init__(self.TREE_PIXELS, x, y)
         self.special_ability = "stun"
+        self.speed = 1
 
     def draw(self, screen):
         super().draw(screen)
 
+    def update(self, players=None):
+        if self.rect.x >= 0:
+            self.rect.x -= self.speed
+
 
 class Bat(Obstacle):
     BAT_PIXELS = [
-        [None, (105, 105, 105), (105, 105, 105), (105, 105, 105), None],
+        [_, (105, 105, 105), (105, 105, 105), (105, 105, 105), _],
         [(105, 105, 105), (255, 0, 0), (0, 0, 0), (255, 0, 0), (105, 105, 105)],
         [(105, 105, 105), (0, 0, 0), (0, 0, 0), (0, 0, 0), (105, 105, 105)],
         [
@@ -179,7 +199,7 @@ class Bat(Obstacle):
             (255, 255, 255),
             (105, 105, 105),
         ],
-        [None, (105, 105, 105), (105, 105, 105), (105, 105, 105), None],
+        [_, (105, 105, 105), (105, 105, 105), (105, 105, 105), _],
     ]
 
     def __init__(self, x, y):
@@ -192,54 +212,39 @@ class Bat(Obstacle):
 
 
 class Rock(Obstacle):
-    ROCK_PIXELS = [
-        [None, None, (169, 169, 169), (169, 169, 169), None, None],
-        [
-            None,
-            (169, 169, 169),
-            (128, 128, 128),
-            (128, 128, 128),
-            (169, 169, 169),
-            None,
-        ],
-        [
-            (169, 169, 169),
-            (128, 128, 128),
-            (112, 128, 144),
-            (112, 128, 144),
-            (128, 128, 128),
-            (169, 169, 169),
-        ],
-        [
-            (169, 169, 169),
-            (128, 128, 128),
-            (112, 128, 144),
-            (112, 128, 144),
-            (128, 128, 128),
-            (169, 169, 169),
-        ],
-        [
-            None,
-            (169, 169, 169),
-            (128, 128, 128),
-            (128, 128, 128),
-            (169, 169, 169),
-            None,
-        ],
-        [None, None, (169, 169, 169), (169, 169, 169), None, None],
+    BASE_ROCK_PIXELS = [
+        [_, _, (169, 169, 169), (169, 169, 169), _, _],
+        [_, (169, 169, 169), (128, 128, 128), (128, 128, 128), (169, 169, 169), _],
+        [(169, 169, 169), (128, 128, 128), (112, 128, 144), (112, 128, 144), (128, 128, 128), (169, 169, 169)],
+        [_, (169, 169, 169), (128, 128, 128), (128, 128, 128), (169, 169, 169), _],
+        [_, _, (169, 169, 169), (169, 169, 169), _, _],
     ]
 
     def __init__(self, x, y):
+        self.speed = 1
+        scale_factor = random.choice([0.75, 1, 1.25])
+        scaled_rock_pixel_art = pygame.transform.scale(
+            create_pixel_art_image(self.BASE_ROCK_PIXELS),
+            (
+                int(scale_factor * len(self.BASE_ROCK_PIXELS[0])),
+                int(scale_factor * len(self.BASE_ROCK_PIXELS)),
+            ),
+        )
+        self.ROCK_PIXELS = [[scaled_rock_pixel_art.get_at((x, y)) for x in range(scaled_rock_pixel_art.get_width())] for y in range(scaled_rock_pixel_art.get_height())]
         super().__init__(self.ROCK_PIXELS, x, y)
         self.special_ability = "stun"
 
     def draw(self, screen):
         super().draw(screen)
 
+    def update(self, players=None):
+        if self.rect.x >= 0:
+            self.rect.x -= self.speed
+
 
 class Owl(Obstacle):
     OWL_PIXELS = [
-        [None, (139, 69, 19), (139, 69, 19), (139, 69, 19), None],
+        [_, (139, 69, 19), (139, 69, 19), (139, 69, 19), _],
         [
             (139, 69, 19),
             (210, 180, 140),
@@ -255,11 +260,12 @@ class Owl(Obstacle):
             (210, 180, 140),
             (139, 69, 19),
         ],
-        [None, (139, 69, 19), (139, 69, 19), (139, 69, 19), None],
-        [None, (139, 69, 19), None, (139, 69, 19), None],
+        [_, (139, 69, 19), (139, 69, 19), (139, 69, 19), _],
+        [_, (139, 69, 19), _, (139, 69, 19), _],
     ]
 
     def __init__(self, x, y):
+        self.speed = 5
         super().__init__(self.OWL_PIXELS, x, y, obstacle_type="owl")
         self.speed = random.randint(1, 3)
         self.special_ability = "absorb"
