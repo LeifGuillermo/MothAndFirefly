@@ -18,9 +18,10 @@ class LightPool:
 
     def increase(self, amount, distance):
         # You can adjust the formula based on the game balance
-        bonus_multiplier = max(1 - 0.01*distance, 0.1)
-        effective_increase = amount * bonus_multiplier
-        self.light_level += effective_increase
+        if distance < 10 and self.light_level < 100:
+            bonus_multiplier = max(1 - 0.01 * distance, 0.1)
+            effective_increase = amount * bonus_multiplier
+            self.light_level += effective_increase
 
     def is_empty(self):
         return self.light_level <= 0
