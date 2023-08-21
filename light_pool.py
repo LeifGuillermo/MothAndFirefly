@@ -1,7 +1,7 @@
 class LightPool:
     def __init__(self):
         self.light_level = 100
-        self.decrease_rate = 0.2778  # Default rate of decrease
+        self.decrease_rate = 0.2  # Default rate of decrease
         self.critical_threshold = 20  # Below this value, warnings should be triggered
 
     def decrease(self, amount):
